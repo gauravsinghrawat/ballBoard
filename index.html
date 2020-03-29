@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Document</title>
+    <style>
+        *{
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
+        }
+        body{
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        canvas{
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 50%;
+            left:50%;
+            transform: translate(-50%,-50%);
+            overflow: hidden;
+            background: #115599;
+            background: linear-gradient(120deg,orangered,yellow,orangered) !important;
+        }
+        #point{
+            position: absolute;
+            width: 100px;
+            height: 70px;
+            background: #000;
+            color: #fff;
+            text-align: center;
+            font-size: 3rem;
+            z-index: 10;
+        }
+        #gameOver{
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,0,0,.8);
+            z-index: 10;
+            display:none;
+            justify-content: center;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        #gameOver h1{
+            font-size: 6rem;
+        }
+    </style>
+</head>
+<body>
+    <h1 id="point"></h1>
+    <div id="gameOver">
+        <h1>GAME OVER</h1>
+    </div>
+    <canvas id="canvas"></canvas>
+    
+    <script type="text/javascript">
+    
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+           //game object literal
+   const mountain =  {
+     draw:  function (montainCount, height, color){
+                     for(let i=0; i < montainCount; i++){
+                         const mountainWidth = canvas.width / montainCount;
+                         ctx.beginPath();
+                         ctx.lineWidth = 1;
+                         ctx.strokeStyle = 'red';
+                         ctx.shadowColor = '#fff';
+                         ctx.shadowBlur = 20;
+                        ctx.moveTo(i * mountainWidth, canvas.height);
+                        ctx.lineTo(i * mountainWidth + mountainWidth + 325, canvas.height);
+                        ctx.lineTo(i * mountainWidth + mountainWidth/2, canvas.height - height);
+                         ctx.lineTo(i * mountainWidth - 525, canvas.height);
+                         ctx.fillStyle = color;
+                         ctx.fill();
+                         ctx.closePath(); 
+                     }
+                }
+        }
+const music = new Audio();
+ music.src = 'Finntopmusic_void.mp3';
+
+        
+        mouse = {
+            x: null,
+            y: null
+        }
+        
+        window.addEventListener('mousemove', (e)=>{
+            mouse.x = e.x;
+            mouse.y = e.y;
+        })
+        
+        function randomIntFromRange(min, max){
+            return Math.floor(Math.random() * (max - min + 1) + min);
+        }
+       // const colors  = ['blue', 'green', '#000'];
+        let angle = 0;
+        let gun;
+        let wood;
+        let pointCount = 0;
+        const point = document.getElementById('point');
+        const gameover = document.getElementById('gameOver');
+        
+        class Gun{
+            constructor(x, y, velocityX, velocityY, radius, color){
+                this.x = x;
+                this.y = y;
+                this.velocityX = velocityX;
+                this.velocityY = velocityY;
+                this.radius = radius;
+                this.color = color;
+                this.gravity = .1;
+                this.friction = .8;
+                
+            }
+            draw(){
+                ctx.save();
+                ctx.beginPath();
+               // ctx.rotate(this.radian * Math.PI/180);  
+                ctx.fillStyle = this.color;
+                ctx.arc(this.x, this.y, this.radius, 0, 2 * Math.PI, false);
+                ctx.fill();
+                ctx.closePath();
+            }
+            update(){
+                if(this.x + this.radius + this.velocityX > canvas.width || this.x + this.radius  < this.radius + 50 )
+                {
+                        this.velocityX = -( this.velocityX );       
+                }
+              
+                let dx = (this.x) - (wood.tx + 50);
+                let dy = this.y - wood.ty;
+                let distance = Math.sqrt(dx*dx + dy*dy);
+             
+              if( this.y > wood.ty - 50 && distance < 200 ){
+                  this.velocityX = randomIntFromRange(-5,5);
+                  this.velocityY = -(this.velocityY ); //bounce
+                  pointCount++;
+                  point.innerHTML = pointCount;
+              } 
+                else if(this.y > canvas.height){
+                    let highscore = document.createElement('h2');
+                    highscore.innerHTML = `HIGH-SCORE:${pointCount}`;
+                    gameover.appendChild(highscore);
+                    gameover.style.display = 'flex';
+                     setTimeout(()=>{
+                          gameover.removeChild(highscore);
+                         gameover.style.display = 'none';
+                        
+                     },1000);
+                    init();
+                    ctx.clearRect(0,0,innerWidth,innerHeight);
+                    pointCount = 0;
+                     point.innerHTML = pointCount;
+                    
+                    }
+            else{
+                   this.velocityY +=  this.gravity;  //pulling down- down
+                }
+                this.x += this.velocityX;
+                this.y += this.velocityY;
+                
+                this.draw();
+            }
+        }
+        
+       class Wood {
+           constructor(tx, ty, tvelocityX, twidth, theight, tcolor){
+             //  super();
+               this.tx = tx;
+               this.ty = ty;
+               this.tvelocityX = tvelocityX;
+               this.twidth = twidth;
+               this.theight = theight;
+               this.tcolor = tcolor;
+           }
+           draw(){
+               ctx.beginPath();
+               ctx.fillStyle = 'blue';
+               ctx.fillRect(this.tx, this.ty, this.twidth, this.theight);
+               ctx.fill();
+               ctx.closePath();
+           }
+           update(){
+                if( mouse.x < canvas.width/2 ){
+                    this.tvelocityX = -10;
+                        if(this.tx < 0){
+                            this.tvelocityX = 0;
+                        }     
+                }
+               else if(mouse.x > canvas.width/2 ){
+                   this.tvelocityX = 10;
+                        if(this.tx > canvas.width - 200){
+                            this.tvelocityX = 0;
+                        }   
+                }
+               this.tx += this.tvelocityX;
+               this.draw();
+           }
+       }
+        
+       
+        
+        function init(){  
+          
+             for(let i = 0 ; i < 1; i++){
+                let x = canvas.width/2;
+                let y = canvas.height/2 - 200;
+                let velocityX = (Math.random() + 2) * 2;
+                let velocityY = (Math.random() + 2) * 2;
+              
+                let radius = 50;
+                let color = 'red';
+                
+                 gun = new Gun(x,y,velocityX,velocityY,radius,color);
+            }
+          
+                    let tx = canvas.width/2;
+                    let ty = canvas.height - 30;
+                    let tvelocityX = 0;
+                    let twidth = 200;
+                    let theight = 20;
+                    let tcolor = 'black';
+                
+                wood = new Wood(tx,ty,tvelocityX,twidth,theight,tcolor);
+            
+        }
+        
+        function animate(){
+            requestAnimationFrame(animate);
+            ctx.clearRect(0, 0, innerWidth, innerHeight);
+           // ctx.fillStyle = 'rgba(255, 255, 255, .05)';
+            //ctx.fillRect(0,0,canvas.width, canvas.height)
+          
+            mountain.draw(1,canvas.height - 100, '#119900');
+            mountain.draw(2,canvas.height - 200, '#118000');
+            mountain.draw(3,canvas.height - 450, '#116000');
+           wood.update();
+            gun.update();
+            
+        }
+        
+        document.onload = fire();
+        function fire(){
+            init();
+            animate();
+              music.play();
+        }
+        
+        window.addEventListener('mouseout',()=>{
+            mouse.x = canvas.width/2;
+            mouse.y = canvas.height;
+        })
+        
+        window.addEventListener('resize', ()=>{
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            init();
+        })
+    </script>
+</body>
+</html>
